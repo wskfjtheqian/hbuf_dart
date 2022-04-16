@@ -4,4 +4,5 @@
 library hbuf_dart;
 
 export 'src/data.dart';
+export 'src/server.dart';
 
