@@ -3,6 +3,6 @@
 /// More dartdocs go here.
 library hbuf_dart;
 
-export 'src/data.dart';
-export 'src/server.dart';
+export 'hbuf/data.dart';
+export 'hbuf/server.dart';
 

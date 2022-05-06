@@ -6,35 +6,37 @@ typedef ByMapInvoke<T> = T? Function(Map<String, dynamic> map);
 
 typedef ByByteDataInvoke<T> = T? Function(ByteData data);
 
-typedef ServerContextInvoke<T> = T Function(
-  String serverName,
-  int serverId,
-  String name,
-  int id,
-  Data param,
-  ByMapInvoke<T> mapInvoke,
-  ByByteDataInvoke<T> dataInvoke,
-);
+class Context {}
 
-abstract class ServerImp {
+abstract class Client {
+  Future<T> invoke<T>(
+    String serverName,
+    int serverId,
+    String name,
+    int id,
+    Data param,
+    ByMapInvoke<T> mapInvoke,
+    ByByteDataInvoke<T> dataInvoke,
+  );
+}
+
+abstract class ServerClient {
   String get name;
 
   int get id;
 
-  ServerContextInvoke? _contextInvoke;
+  Client _client;
 
-  set contextInvoke(ServerContextInvoke value) {
-    _contextInvoke = value;
-  }
+  ServerClient(this._client);
 
-  T invoke<T>(
+  Future<T> invoke<T>(
     String name,
     int id,
     Data param,
     ByMapInvoke<T> mapInvoke,
     ByByteDataInvoke<T> dataInvoke,
   ) {
-    return _contextInvoke!.call(
+    return _client.invoke<T>(
       this.name,
       this.id,
       name,
@@ -42,7 +44,7 @@ abstract class ServerImp {
       param,
       mapInvoke,
       dataInvoke,
-    ) as T;
+    );
   }
 }
 
