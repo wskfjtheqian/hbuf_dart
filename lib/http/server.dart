@@ -109,7 +109,7 @@ class HttpServerJson {
   }
 
   void add(ServerRouter route) {
-    for (var item in route.getInvoke().entries) {
+    for (var item in route.invokeNames.entries) {
       router["/${route.name}/${item.key}"] = item.value;
     }
   }

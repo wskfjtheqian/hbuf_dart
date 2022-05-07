@@ -75,27 +75,24 @@ abstract class PeopleServer {
 class PeopleRouter extends ServerRouter {
   final PeopleServer people;
 
-  Map<String, ServerInvoke> names = {};
+  final Map<String, ServerInvoke> _invokeNames = {
+    "people/get_name": ServerInvoke(
+      toData: (List<int> buf) async {
+        return PeopleReq.fromMap(json.decode(utf8.decode(buf)));
+      },
+      formData: (Data data) async {
+        return utf8.encode(json.encode(data.toMap()));
+      },
+      invoke: (Context ctx, Data data) async {
+        return await people.getName(data as PeopleReq, ctx);
+      },
+    ),
+  };
+
+  Map<int, ServerInvoke> _invokeIds = {};
 
   PeopleRouter(this.people) {
-    names = {
-      "people/get_name": ServerInvoke(
-        toData: (List<int> buf) async {
-          return PeopleReq.fromMap(json.decode(utf8.decode(buf)));
-        },
-        formData: (Data data) async {
-          return utf8.encode(json.encode(data.toMap()));
-        },
-        invoke: (Context ctx, Data data) async {
-          return await people.getName(data as PeopleReq, ctx);
-        },
-      ),
-    };
-  }
-
-  @override
-  Map<String, ServerInvoke> getInvoke() {
-    return names;
+    names = ;
   }
 
   @override
@@ -103,6 +100,14 @@ class PeopleRouter extends ServerRouter {
 
   @override
   String get name => "people";
+
+  @override
+  // TODO: implement invokeIds
+  Map<int, ServerInvoke> get invokeIds => throw UnimplementedError();
+
+  @override
+  // TODO: implement invokeNames
+  Map<String, ServerInvoke> get invokeNamesinvokeNames => throw UnimplementedError();
 }
 
 class PeopleImp extends PeopleServer {
@@ -114,7 +119,7 @@ class PeopleImp extends PeopleServer {
 
 void main() {
   group('hbuf http tests', () {
-    test('client', () async {
+    test('Http Client', () async {
       var cookie = CookieJar();
       var client = HttpClientJson(
         baseUrl: "http://localhost:8080",
@@ -137,7 +142,7 @@ void main() {
       }
     });
 
-    test("Server", () async {
+    test("Http Server", () async {
       var server = await HttpServer.bind("0.0.0.0", 8080);
 
       var router = HttpServerJson();

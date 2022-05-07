@@ -46,6 +46,8 @@ abstract class ServerClient {
       dataInvoke,
     );
   }
+
+  Client get client => _client;
 }
 
 abstract class ServerRouter {
@@ -53,7 +55,9 @@ abstract class ServerRouter {
 
   int get id;
 
-  Map<String, ServerInvoke> getInvoke();
+  Map<String, ServerInvoke> get invokeNames;
+  
+  Map<int, ServerInvoke> get invokeIds;
 }
 
 class ServerInvoke {
