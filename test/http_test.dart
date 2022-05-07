@@ -1,9 +1,13 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:hbuf_dart/hbuf/data.dart';
 import 'package:hbuf_dart/hbuf/server.dart';
 import 'package:hbuf_dart/http/client.dart';
+import 'package:hbuf_dart/http/server.dart';
 import 'package:test/test.dart';
 
 class PeopleReq extends Data {
@@ -16,6 +20,10 @@ class PeopleReq extends Data {
   @override
   Map<String, dynamic> toMap() {
     return {};
+  }
+
+  static PeopleReq fromMap(dynamic map) {
+    return PeopleReq();
   }
 }
 
@@ -32,7 +40,9 @@ class PeopleRes extends Data {
 
   @override
   Map<String, dynamic> toMap() {
-    return {};
+    return {
+      'name': name,
+    };
   }
 
   static PeopleRes forData(ByteData data) {
@@ -58,6 +68,50 @@ class PeopleClient extends ServerClient {
   }
 }
 
+abstract class PeopleServer {
+  Future<PeopleRes> getName(PeopleReq req, [Context? context]);
+}
+
+class PeopleRouter extends ServerRouter {
+  final PeopleServer people;
+
+  Map<String, ServerInvoke> names = {};
+
+  PeopleRouter(this.people) {
+    names = {
+      "people/get_name": ServerInvoke(
+        toData: (List<int> buf) async {
+          return PeopleReq.fromMap(json.decode(utf8.decode(buf)));
+        },
+        formData: (Data data) async {
+          return utf8.encode(json.encode(data.toMap()));
+        },
+        invoke: (Context ctx, Data data) async {
+          return await people.getName(data as PeopleReq, ctx);
+        },
+      ),
+    };
+  }
+
+  @override
+  Map<String, ServerInvoke> getInvoke() {
+    return names;
+  }
+
+  @override
+  int get id => 22;
+
+  @override
+  String get name => "people";
+}
+
+class PeopleImp extends PeopleServer {
+  @override
+  Future<PeopleRes> getName(PeopleReq req, [Context? context]) async {
+    return PeopleRes(name: "小张");
+  }
+}
+
 void main() {
   group('hbuf http tests', () {
     test('client', () async {
@@ -69,6 +123,11 @@ void main() {
         request.cookies.addAll(await cookie.loadForRequest(request.uri));
         next?.invoke!(request, data, next.next);
       });
+      client.insertResponseInterceptor((request, response, data, next) async {
+        await cookie.saveFromResponse(request.uri, response.cookies);
+        return await next?.invoke!(request, response, data, next.next) ?? data;
+      });
+
       var people = PeopleClient(client);
       try {
         var name = await people.getName(PeopleReq());
@@ -77,5 +136,15 @@ void main() {
         print(e);
       }
     });
+
+    test("Server", () async {
+      var server = await HttpServer.bind("0.0.0.0", 8080);
+
+      var router = HttpServerJson();
+      router.add(PeopleRouter(PeopleImp()));
+
+      server.listen(router.onData);
+      await Completer.sync().future;
+    }, timeout: Timeout(Duration(days: 100)));
   });
 }

@@ -48,12 +48,24 @@ abstract class ServerClient {
   }
 }
 
-abstract class ServerRoute {
+abstract class ServerRouter {
   String get name;
 
   int get id;
 
-  Map<String, dynamic> invokeMap(String name, Map<String, dynamic> map);
+  Map<String, ServerInvoke> getInvoke();
+}
 
-  ByteData invokeData(int id, ByteData data);
+class ServerInvoke {
+  Future<Data> Function(List<int> buf) toData;
+
+  Future<List<int>> Function(Data data) formData;
+
+  Future<Data> Function(Context ctx, Data data) invoke;
+
+  ServerInvoke({
+    required this.toData,
+    required this.formData,
+    required this.invoke,
+  });
 }

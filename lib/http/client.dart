@@ -3,52 +3,77 @@ import 'dart:io';
 
 import 'package:hbuf_dart/hbuf/data.dart';
 import 'package:hbuf_dart/hbuf/server.dart';
+import 'package:hbuf_dart/http/http.dart';
 
-class RequestInterceptor {
-  Future<void> Function(HttpClientRequest request, List<int> data, RequestInterceptor? next)? invoke;
+typedef _RequestInvoke = Future<void> Function(HttpClientRequest request, List<int> data, _RequestInterceptor? next);
 
-  RequestInterceptor? next;
+typedef _ResponseInvoke = Future<List<int>> Function(HttpClientRequest request, HttpClientResponse response, List<int> data, _ResponseInterceptor? next);
 
-  RequestInterceptor({this.invoke, this.next});
+class _RequestInterceptor {
+  _RequestInvoke? invoke;
+
+  _RequestInterceptor? next;
+
+  _RequestInterceptor({this.invoke, this.next});
 }
 
-class ResponseInterceptor {
-  Future<void> Function(HttpClientResponse response, List<int> data, ResponseInterceptor? next)? invoke;
+class _ResponseInterceptor {
+  _ResponseInvoke? invoke;
 
-  ResponseInterceptor? next;
+  _ResponseInterceptor? next;
 
-  ResponseInterceptor({this.invoke, this.next});
+  _ResponseInterceptor({this.invoke, this.next});
 }
-
 
 class HttpClientJson extends Client {
   final String baseUrl;
 
   final HttpClient _client = HttpClient();
 
-  RequestInterceptor? _requestInterceptor;
+  _RequestInterceptor? _requestInterceptor;
 
-  ResponseInterceptor? _responseInterceptor;
+  _ResponseInterceptor? _responseInterceptor;
 
   HttpClientJson({required this.baseUrl}) {
-    _requestInterceptor = RequestInterceptor(invoke: requestInterceptor);
+    _requestInterceptor = _RequestInterceptor(invoke: requestInterceptor);
+    _responseInterceptor = _ResponseInterceptor(invoke: responseInterceptor);
   }
 
-  void addRequestInterceptor(Future<void> Function(HttpClientRequest request, List<int> data, RequestInterceptor? next) interceptor) {
+  void addRequestInterceptor(_RequestInvoke interceptor) {
     var temp = _requestInterceptor;
     while (null != temp!.next) {
       temp = temp.next;
     }
-    temp.next = RequestInterceptor(invoke: interceptor);
+    temp.next = _RequestInterceptor(invoke: interceptor);
   }
 
-  void insertRequestInterceptor(Future<void> Function(HttpClientRequest request, List<int> data, RequestInterceptor? next) interceptor) {
-    _requestInterceptor = RequestInterceptor(invoke: interceptor, next: _requestInterceptor);
+  void insertRequestInterceptor(_RequestInvoke interceptor) {
+    _requestInterceptor = _RequestInterceptor(invoke: interceptor, next: _requestInterceptor);
   }
 
-  Future<void> requestInterceptor(HttpClientRequest request, List<int> data, RequestInterceptor? next) async {
+  void addResponseInterceptor(_ResponseInvoke interceptor) {
+    _responseInterceptor = _ResponseInterceptor(invoke: interceptor, next: _responseInterceptor);
+  }
+
+  void insertResponseInterceptor(_ResponseInvoke interceptor) {
+    var temp = _responseInterceptor;
+    while (null != temp!.next) {
+      temp = temp.next;
+    }
+    temp.next = _ResponseInterceptor(invoke: interceptor);
+  }
+
+  Future<void> requestInterceptor(HttpClientRequest request, List<int> data, _RequestInterceptor? next) async {
     request.add(data);
     next?.invoke!(request, data, next.next);
+  }
+
+  Future<List<int>> responseInterceptor(HttpClientRequest request, HttpClientResponse response, List<int> data, _ResponseInterceptor? next) async {
+    var list = await response.toList();
+    for (var item in list) {
+      data.addAll(item);
+    }
+    return await next?.invoke!(request, response, data, next.next) ?? data;
   }
 
   @override
@@ -59,7 +84,10 @@ class HttpClientJson extends Client {
     await _requestInterceptor!.invoke!(request, buffer, _requestInterceptor!.next);
 
     var response = await request.close();
-    var data = await utf8.decodeStream(response);
-    return mapInvoke(json.decode(data))!;
+    if (HttpStatus.ok != response.statusCode) {
+      throw HttpError(code: response.statusCode);
+    }
+    var data = await _responseInterceptor!.invoke!(request, response, [], _responseInterceptor!.next);
+    return mapInvoke(json.decode(utf8.decode(data)))!;
   }
 }
