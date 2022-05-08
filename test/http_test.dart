@@ -75,24 +75,24 @@ abstract class PeopleServer {
 class PeopleRouter extends ServerRouter {
   final PeopleServer people;
 
-  final Map<String, ServerInvoke> _invokeNames = {
-    "people/get_name": ServerInvoke(
-      toData: (List<int> buf) async {
-        return PeopleReq.fromMap(json.decode(utf8.decode(buf)));
-      },
-      formData: (Data data) async {
-        return utf8.encode(json.encode(data.toMap()));
-      },
-      invoke: (Context ctx, Data data) async {
-        return await people.getName(data as PeopleReq, ctx);
-      },
-    ),
-  };
+  Map<String, ServerInvoke> _invokeNames = {};
 
   Map<int, ServerInvoke> _invokeIds = {};
 
   PeopleRouter(this.people) {
-    names = ;
+    _invokeNames = {
+      "people/get_name": ServerInvoke(
+        toData: (List<int> buf) async {
+          return PeopleReq.fromMap(json.decode(utf8.decode(buf)));
+        },
+        formData: (Data data) async {
+          return utf8.encode(json.encode(data.toMap()));
+        },
+        invoke: (Context ctx, Data data) async {
+          return await people.getName(data as PeopleReq, ctx);
+        },
+      ),
+    };
   }
 
   @override
@@ -102,12 +102,10 @@ class PeopleRouter extends ServerRouter {
   String get name => "people";
 
   @override
-  // TODO: implement invokeIds
-  Map<int, ServerInvoke> get invokeIds => throw UnimplementedError();
+  Map<int, ServerInvoke> get invokeIds => _invokeIds;
 
   @override
-  // TODO: implement invokeNames
-  Map<String, ServerInvoke> get invokeNamesinvokeNames => throw UnimplementedError();
+  Map<String, ServerInvoke> get invokeNames => _invokeNames;
 }
 
 class PeopleImp extends PeopleServer {
