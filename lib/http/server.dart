@@ -9,7 +9,7 @@ typedef _RequestInvoke = Future<List<int>> Function(HttpRequest request, List<in
 
 typedef _ResponseInvoke = Future<void> Function(HttpRequest request, List<int> data, _ResponseInterceptor? next);
 
-typedef _ContextInvoke = Future<Context> Function(HttpRequest request, Data data, _ResponseInterceptor? next);
+typedef _ContextInvoke = Future<Context> Function(HttpRequest request, Context context, Data data, _ContextInterceptor? next);
 
 typedef _ErrorInterceptor = Future<void> Function(HttpRequest request, Error error);
 
@@ -104,8 +104,8 @@ class HttpServerJson {
     next?.invoke!(request, data, next.next);
   }
 
-  Future<Context> contextInterceptor(HttpRequest request, Data data, _ResponseInterceptor? next) async {
-    return Context();
+  Future<Context> contextInterceptor(HttpRequest request, Context ctx, Data data, _ContextInterceptor? next) async {
+    return await next?.invoke!(request, ctx, data, next.next) ?? ctx;
   }
 
   void add(ServerRouter route) {
@@ -117,7 +117,7 @@ class HttpServerJson {
   Future<void> onData(HttpRequest event) async {
     var value = router[event.uri.path];
     if (null == value) {
-      await _errorInterceptor!(event,HttpError(code: HttpStatus.notFound));
+      await _errorInterceptor!(event, HttpError(code: HttpStatus.notFound));
       await event.response.close();
       return;
     }
@@ -125,7 +125,7 @@ class HttpServerJson {
       List<int> list = await _requestInterceptor!.invoke!(event, [], _requestInterceptor!.next);
       var data = await value.toData(list);
 
-      var ctx = await _contextInterceptor!.invoke!(event, data, _responseInterceptor!.next);
+      var ctx = await _contextInterceptor!.invoke!(event, Context(), data, _contextInterceptor!.next);
       data = await value.invoke(ctx, data);
 
       list = await value.formData(data);

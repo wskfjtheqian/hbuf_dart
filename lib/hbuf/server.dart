@@ -25,7 +25,7 @@ abstract class ServerClient {
 
   int get id;
 
-  Client _client;
+  final Client _client;
 
   ServerClient(this._client);
 
