@@ -7,7 +7,7 @@ import 'package:hbuf_dart/http/http.dart';
 
 typedef _RequestInvoke = Future<List<int>> Function(HttpRequest request, List<int> data, _RequestInterceptor? next);
 
-typedef _ResponseInvoke = Future<void> Function(HttpRequest request, List<int> data, _ResponseInterceptor? next);
+typedef _ResponseInvoke = Future<List<int>> Function(HttpRequest request, List<int> data, _ResponseInterceptor? next);
 
 typedef _ContextInvoke = Future<Context> Function(HttpRequest request, Context context, Data data, _ContextInterceptor? next);
 
@@ -99,9 +99,10 @@ class HttpServerJson {
     return await next?.invoke!(request, data, next.next) ?? data;
   }
 
-  Future<void> responseInterceptor(HttpRequest request, List<int> data, _ResponseInterceptor? next) async {
+  Future<List<int>> responseInterceptor(HttpRequest request, List<int> data, _ResponseInterceptor? next) async {
+    data = await next?.invoke!(request, data, next.next) ?? data;
     request.response.add(data);
-    next?.invoke!(request, data, next.next);
+    return data;
   }
 
   Future<Context> contextInterceptor(HttpRequest request, Context ctx, Data data, _ContextInterceptor? next) async {
