@@ -11,7 +11,7 @@ typedef _ResponseInvoke = Future<List<int>> Function(HttpRequest request, List<i
 
 typedef _ContextInvoke = Future<Context> Function(HttpRequest request, Context context, Data data, _ContextInterceptor? next);
 
-typedef _ErrorInterceptor = Future<void> Function(HttpRequest request, Error error);
+typedef _ErrorInterceptor = Future<void> Function(HttpRequest request, Result error);
 
 class _ContextInterceptor {
   _ContextInvoke? invoke;
@@ -118,7 +118,7 @@ class HttpServerJson {
   Future<void> onData(HttpRequest event) async {
     var value = router[event.uri.path];
     if (null == value) {
-      await _errorInterceptor!(event, HttpError(code: HttpStatus.notFound));
+      await _errorInterceptor!(event, Result(code: HttpStatus.notFound));
       await event.response.close();
       return;
     }
@@ -138,9 +138,9 @@ class HttpServerJson {
     }
   }
 
-  Future<void> errorInterceptor(HttpRequest request, Error error) async {
-    if (error is HttpError) {
-      request.response.statusCode = error.code;
+  Future<void> errorInterceptor(HttpRequest request, Result error) async {
+    if (error is Result) {
+      request.response.statusCode =(error).code;
     }
   }
 }

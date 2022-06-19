@@ -85,9 +85,13 @@ class HttpClientJson extends Client {
 
     var response = await request.close();
     if (HttpStatus.ok != response.statusCode) {
-      throw HttpError(code: response.statusCode);
+      throw HttpException(response.statusCode.toString(), uri: uri);
     }
     var data = await _responseInterceptor!.invoke!(request, response, [], _responseInterceptor!.next);
-    return mapInvoke(json.decode(utf8.decode(data)))!;
+    var result = Result.fromMap(json.decode(utf8.decode(data)));
+    if (0 != result?.code) {
+      throw result!;
+    }
+    return mapInvoke(null == result?.data ? {} : json.decode(result!.data!))!;
   }
 }

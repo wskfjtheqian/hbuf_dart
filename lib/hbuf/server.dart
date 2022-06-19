@@ -8,6 +8,33 @@ typedef ByByteDataInvoke<T> = T? Function(ByteData data);
 
 class Context {}
 
+class Result {
+  int code;
+  String? msg;
+  dynamic data;
+
+  Result({
+    required this.code,
+    this.msg,
+    this.data,
+  });
+
+  static Result? fromMap(dynamic map) {
+    if (null == map) return null;
+    var temp;
+    return Result(
+      code: null == (temp = map['code']) ? 0 : (temp is num ? temp.toInt() : int.tryParse(temp) ?? 0),
+      msg: map['msg']?.toString(),
+      data: map['data'],
+    );
+  }
+
+  @override
+  String toString() {
+    return msg ?? code.toString();
+  }
+}
+
 abstract class Client {
   Future<T> invoke<T>(
     String serverName,
@@ -56,7 +83,7 @@ abstract class ServerRouter {
   int get id;
 
   Map<String, ServerInvoke> get invokeNames;
-  
+
   Map<int, ServerInvoke> get invokeIds;
 }
 
