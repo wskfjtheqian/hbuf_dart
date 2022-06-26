@@ -1,13 +1,12 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:hbuf_dart/hbuf/data.dart';
 import 'package:hbuf_dart/hbuf/server.dart';
 import 'package:hbuf_dart/http/http.dart';
 
-typedef _RequestInvoke = Future<void> Function(HttpClientRequest request, List<int> data, _RequestInterceptor? next);
+typedef _RequestInvoke = Future<void> Function(Request request, List<int> data, _RequestInterceptor? next);
 
-typedef _ResponseInvoke = Future<List<int>> Function(HttpClientRequest request, HttpClientResponse response, List<int> data, _ResponseInterceptor? next);
+typedef _ResponseInvoke = Future<List<int>> Function(Request request, Response response, List<int> data, _ResponseInterceptor? next);
 
 class _RequestInterceptor {
   _RequestInvoke? invoke;
@@ -28,7 +27,7 @@ class _ResponseInterceptor {
 class HttpClientJson extends Client {
   final String baseUrl;
 
-  final HttpClient _client = HttpClient();
+  final Http _http = Http();
 
   _RequestInterceptor? _requestInterceptor;
 
@@ -63,12 +62,12 @@ class HttpClientJson extends Client {
     temp.next = _ResponseInterceptor(invoke: interceptor);
   }
 
-  Future<void> requestInterceptor(HttpClientRequest request, List<int> data, _RequestInterceptor? next) async {
+  Future<void> requestInterceptor(Request request, List<int> data, _RequestInterceptor? next) async {
     request.add(data);
     next?.invoke!(request, data, next.next);
   }
 
-  Future<List<int>> responseInterceptor(HttpClientRequest request, HttpClientResponse response, List<int> data, _ResponseInterceptor? next) async {
+  Future<List<int>> responseInterceptor(Request request, Response response, List<int> data, _ResponseInterceptor? next) async {
     var list = await response.toList();
     for (var item in list) {
       data.addAll(item);
@@ -78,14 +77,14 @@ class HttpClientJson extends Client {
 
   @override
   Future<T> invoke<T>(String serverName, int serverId, String name, int id, Data param, ByMapInvoke<T> mapInvoke, ByByteDataInvoke<T> dataInvoke) async {
-    var uri = Uri.parse("$baseUrl/$serverName/$name");
-    var request = await _client.postUrl(uri);
+    Uri uri = Uri.parse("$baseUrl/$serverName/$name");
+    var request = await _http.post(uri);
     var buffer = utf8.encode(json.encode(param.toMap()));
     await _requestInterceptor!.invoke!(request, buffer, _requestInterceptor!.next);
 
     var response = await request.close();
-    if (HttpStatus.ok != response.statusCode) {
-      throw HttpException(response.statusCode.toString(), uri: uri);
+    if (StatusCode.ok != response.statusCode) {
+      throw HttpException(response.statusCode, uri: uri);
     }
     var data = await _responseInterceptor!.invoke!(request, response, [], _responseInterceptor!.next);
     var result = Result.fromMap(json.decode(utf8.decode(data)));
