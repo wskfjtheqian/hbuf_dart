@@ -32,7 +32,7 @@ abstract class Response {
   Headers get headers;
 }
 
-abstract class Headers{
+abstract class Headers {
   void add(String key, String value);
 
   String? value(String key);
@@ -40,12 +40,18 @@ abstract class Headers{
 
 class StatusCode {
   static const StatusCode ok = StatusCode(200, "OK");
+  static const StatusCode notFound = StatusCode(404, "Not Found");
+  static const StatusCode internalServerError = StatusCode(500, "Internal Server Error");
 
   final String text;
 
   final int code;
 
-  static const List<StatusCode> _list = [ok];
+  static const List<StatusCode> _list = [
+    ok,
+    notFound,
+    internalServerError,
+  ];
 
   const StatusCode(this.code, this.text);
 
