@@ -4,4 +4,6 @@ abstract class Data {
   Map<String, dynamic> toMap();
 
   ByteData toData();
+
+  Data copy()
 }
