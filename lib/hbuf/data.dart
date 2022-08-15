@@ -5,5 +5,5 @@ abstract class Data {
 
   ByteData toData();
 
-  Data copy()
+  Data copy();
 }
