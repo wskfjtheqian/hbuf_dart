@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:hbuf_dart/hbuf/data.dart';
 import 'package:hbuf_dart/hbuf/server.dart';
 import 'package:hbuf_dart/http/http.dart';
+import 'dart:developer';
 
 typedef _RequestInvoke = Future<void> Function(Request request, List<int> data, _RequestInterceptor? next);
 
@@ -91,6 +92,6 @@ class HttpClientJson extends Client {
     if (0 != result?.code) {
       throw result!;
     }
-    return mapInvoke(null == result?.data ? {} : json.decode(result!.data!))!;
+    return mapInvoke(null == result?.data ? {} : result!.data!)!;
   }
 }
