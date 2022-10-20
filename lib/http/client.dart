@@ -91,6 +91,6 @@ class HttpClientJson extends Client {
     if (0 != result?.code) {
       throw result!;
     }
-    return mapInvoke(null == result?.data ? {} : json.decode(result!.data!))!;
+    return mapInvoke(null == result?.data ? {} : result!.data!)!;
   }
 }
