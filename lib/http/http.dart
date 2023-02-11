@@ -78,4 +78,9 @@ class HttpException extends Error {
   final Uri? uri;
 
   HttpException(this.code, {this.uri});
+
+  @override
+  String toString() {
+    return 'HttpException{code: $code, uri: $uri}';
+  }
 }
