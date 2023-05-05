@@ -88,8 +88,14 @@ class Request implements h.Request {
   @override
   h.Headers get headers => Headers._(_headers);
 
-  void setOnProgress(void Function(int count)? call) {
+  @override
+  set onProgress(void Function(int count)? call) {
     _call = call;
+  }
+
+  @override
+  Future cancel() async {
+    _request.abort();
   }
 }
 

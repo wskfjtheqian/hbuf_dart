@@ -22,7 +22,9 @@ abstract class Request {
 
   Headers get headers;
 
-  void setOnProgress(void Function(int count)? call);
+  set onProgress(void Function(int count)? call);
+
+  Future cancel();
 }
 
 abstract class Response {
