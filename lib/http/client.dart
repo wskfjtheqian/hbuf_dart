@@ -64,8 +64,8 @@ class HttpClientJson extends Client {
   }
 
   Future<void> requestInterceptor(Request request, List<int> data, _RequestInterceptor? next) async {
-    request.setData(Stream.value(data));
-    next?.invoke!(request, data, next.next);
+    await request.setData(Stream.value(data));
+    await next?.invoke!(request, data, next.next);
   }
 
   Future<List<int>> responseInterceptor(Request request, Response response, List<int> data, _ResponseInterceptor? next) async {
