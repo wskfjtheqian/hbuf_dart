@@ -22,6 +22,9 @@ class Request implements h.Request {
   final Completer _completer = Completer.sync();
   StreamSubscription<w.Event>? _changeSubscription;
   StreamSubscription<w.Event>? _errorSubscription;
+  StreamSubscription<w.Event>? _uploadSubscription;
+
+  void Function(int count)? _call;
 
   Request._(this._request, this._uri) {
     _changeSubscription = _request.onReadyStateChange.listen((event) {
@@ -40,6 +43,10 @@ class Request implements h.Request {
       }
       _completer.completeError(h.HttpException(h.StatusCode.ofCode(_request.status ?? 0), uri: _uri));
     });
+    _uploadSubscription = _request.upload.onProgress.listen((event) {
+      print(event.loaded);
+      print(event.total);
+    });
   }
 
   @override
@@ -47,15 +54,29 @@ class Request implements h.Request {
     await _completer.future;
     _changeSubscription?.cancel();
     _errorSubscription?.cancel();
+    _uploadSubscription?.cancel();
     return Response._(_request);
   }
 
   @override
-  void add(List<int> data) {
+  Future<void> setData(Stream<List<int>> data) async {
     for (var item in _headers.entries) {
       _request.setRequestHeader(item.key, item.value);
     }
-    _request.send(data);
+    StreamSubscription? _subscription;
+    Completer completer = Completer.sync();
+    var _requestData = <int>[];
+    _subscription = data.listen((event) {
+      _requestData.addAll(event);
+    }, onDone: () {
+      _request.send(_requestData);
+      _subscription?.cancel();
+      completer.complete();
+    }, onError: (e) {
+      _subscription?.cancel();
+      completer.completeError(e);
+    });
+    await completer.future;
   }
 
   @override
@@ -66,6 +87,10 @@ class Request implements h.Request {
 
   @override
   h.Headers get headers => Headers._(_headers);
+
+  void setOnProgress(void Function(int count)? call) {
+    _call = call;
+  }
 }
 
 class Response implements h.Response {
@@ -77,8 +102,8 @@ class Response implements h.Response {
   h.StatusCode get statusCode => h.StatusCode(_request.status ?? 0, _request.statusText ?? _request.readyState.toString());
 
   @override
-  Future<List<List<int>>> toList() {
-    return Future.value([(_request.response as ByteBuffer).asUint8List()]);
+  Stream<List<int>> get body {
+    return Stream.value((_request.response as ByteBuffer).asUint8List());
   }
 
   @override

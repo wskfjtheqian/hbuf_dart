@@ -1,9 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:hbuf_dart/hbuf/data.dart';
 import 'package:hbuf_dart/hbuf/server.dart';
 import 'package:hbuf_dart/http/http.dart';
-import 'dart:developer';
 
 typedef _RequestInvoke = Future<void> Function(Request request, List<int> data, _RequestInterceptor? next);
 
@@ -64,15 +64,23 @@ class HttpClientJson extends Client {
   }
 
   Future<void> requestInterceptor(Request request, List<int> data, _RequestInterceptor? next) async {
-    request.add(data);
+    request.setData(Stream.value(data));
     next?.invoke!(request, data, next.next);
   }
 
   Future<List<int>> responseInterceptor(Request request, Response response, List<int> data, _ResponseInterceptor? next) async {
-    var list = await response.toList();
-    for (var item in list) {
-      data.addAll(item);
-    }
+    StreamSubscription? _subscription;
+    Completer completer = Completer.sync();
+    _subscription = response.body.listen((event) {
+      data.addAll(event);
+    }, onDone: () {
+      _subscription?.cancel();
+      completer.complete();
+    }, onError: (e) {
+      _subscription?.cancel();
+      completer.completeError(e);
+    });
+    await completer.future;
     return await next?.invoke!(request, response, data, next.next) ?? data;
   }
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:hbuf_dart/http/http_os.dart' if (dart.library.html) 'package:hbuf_dart/http/http_web.dart' as h;
@@ -13,19 +14,21 @@ abstract class Http {
 abstract class Request {
   Future<Response> close();
 
-  void add(List<int> data);
+  Future<void> setData(Stream<List<int>> data);
 
   Uri get uri;
 
   List<Cookie> get cookies;
 
   Headers get headers;
+
+  void setOnProgress(void Function(int count)? call);
 }
 
 abstract class Response {
   StatusCode get statusCode;
 
-  Future<List<List<int>>> toList();
+  Stream<List<int>> get body;
 
   List<Cookie> get cookies;
 
@@ -65,8 +68,7 @@ class StatusCode {
   }
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) || other is StatusCode && runtimeType == other.runtimeType && code == other.code;
+  bool operator ==(Object other) => identical(this, other) || other is StatusCode && runtimeType == other.runtimeType && code == other.code;
 
   @override
   int get hashCode => code.hashCode;

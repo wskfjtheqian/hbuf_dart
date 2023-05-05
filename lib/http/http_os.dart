@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:hbuf_dart/http/http.dart' as h;
@@ -14,6 +15,8 @@ class Http implements h.Http {
 class Request implements h.Request {
   final HttpClientRequest _request;
 
+  void Function(int count)? _call;
+
   Request._(this._request);
 
   @override
@@ -22,8 +25,20 @@ class Request implements h.Request {
   }
 
   @override
-  void add(List<int> data) {
-    _request.add(data);
+  Future<void> setData(Stream<List<int>> data) async {
+    StreamSubscription? _subscription;
+    Completer completer = Completer.sync();
+    _subscription = data.listen((event) {
+      _call?.call(event.length);
+      _request.add(event);
+    }, onDone: () {
+      _subscription?.cancel();
+      completer.complete();
+    }, onError: (e) {
+      _subscription?.cancel();
+      completer.completeError(e);
+    });
+    await completer.future;
   }
 
   @override
@@ -35,6 +50,10 @@ class Request implements h.Request {
 
   @override
   Headers get headers => Headers._(_request.headers);
+
+  void setOnProgress(void Function(int count)? call) {
+    _call = call;
+  }
 }
 
 class Response implements h.Response {
@@ -46,8 +65,8 @@ class Response implements h.Response {
   h.StatusCode get statusCode => h.StatusCode.ofCode(_response.statusCode);
 
   @override
-  Future<List<List<int>>> toList() {
-    return _response.toList();
+  Stream<List<int>> get body {
+    return _response;
   }
 
   List<Cookie> get cookies {
